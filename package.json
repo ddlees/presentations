@@ -9,17 +9,19 @@
     "type": "module",
     "scripts": {
         "start": "marp -s",
-        "build": "npm-run-all -sl clean --parallel build:* copy:* --sequential rename:html",
+        "build": "npm-run-all -sl clean --parallel build:* copy:* --sequential --parallel rename:html index",
         "build:html": "marp",
         "build:pdf": "marp --pdf",
         "build:pptx": "marp --pptx",
         "rename:html": "renamer --view one-line --find '/(.*)\\.html/' --replace 'index.html' dist/**/*",
         "copy:images": "cpy '**/images/**/*' '../dist' --cwd=slides --parents",
+        "index": "node buildIndex.js",
         "clean": "rimraf ./dist"
     },
     "devDependencies": {
         "@marp-team/marp-cli": "^1.4.1",
         "cpy-cli": "^3.1.1",
+        "mustache": "^4.2.0",
         "npm-run-all": "^4.1.5",
         "renamer": "^4.0.0",
         "rimraf": "^3.0.2"

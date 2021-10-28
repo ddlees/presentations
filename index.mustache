@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
+    <meta name="viewport" content="width=device-width initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #fff;
+            color: #444;
+            font-family: "Fira Code", Helvetica, Arial, sans-serif;
+        }
+
+        h1 {
+            font-size: 1.875rem
+        }
+
+        ul {
+            list-style: none;
+            margin: 1em 2em;
+            max-width: 720px;
+            padding: 0
+        }
+
+        ul li {
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNzAgMzAgNTMuNTQgMTMuNTRDNTEuNTkgMTEuNTkgNTAgMTIuMjUgNTAgMTV2MjBhNSA1IDAgMCAwIDUgNWgyMGE1IDUgMCAwIDEgNSA1djQwYTUgNSAwIDAgMS01IDVIMjVhNSA1IDAgMCAxLTUtNVYxNWE1IDUgMCAwIDEgNS01aDE1IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSI1Ii8+PC9zdmc+");
+            background-position: 0;
+            background-repeat: no-repeat;
+            background-size: 1.5rem 1.5rem;
+            display: flex;
+            height: 2rem;
+            margin: 5px 0 0;
+            opacity: .5;
+            padding: 0 0 0 calc(24px + .5em)
+        }
+
+        ul li.convertible {
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZGVmcz48c3R5bGU+Lmx7ZmlsbDpub25lO3N0cm9rZTojMDI4OGQxO3N0cm9rZS1saW5lY2FwOnJvdW5kO3N0cm9rZS1saW5lam9pbjpyb3VuZDtzdHJva2Utd2lkdGg6NXB4fTwvc3R5bGU+PC9kZWZzPjxwYXRoIGNsYXNzPSJsIiBkPSJtMzYuNzEgNzYuNzkgNTMuNTctNTMuNTh2NTMuNThIMzYuNzF6Ii8+PHBhdGggY2xhc3M9ImwiIGQ9Im0xMCA3Ni43OSA1My41Ny01My41OHY1My41OEgxMHoiLz48L3N2Zz4=");
+            opacity: 1
+        }
+
+        ul li a.link {
+            border-radius: 5px;
+            box-sizing: border-box;
+            color: #02669d;
+            display: block;
+            height: 30px;
+            line-height: 20px;
+            padding: 5px 10px;
+            text-decoration: none
+        }
+
+        ul li a.link:focus,
+        ul li a.link:hover {
+            background: #f8f8f8;
+            text-decoration: underline
+        }
+
+        ul li a.link:hover:active {
+            background: #f0f0f0
+        }
+
+        ul li a.link.file {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        ul li a.link.pdf,
+        ul li a.link.pptx {
+            flex: 0 1 auto;
+            font-size: 14px;
+            margin: 0 0 0 .5em
+        }
+
+        ul li a.link.pdf {
+            color: #ee1d1f
+        }
+
+        ul li a.link.pptx {
+            color: #b7472a
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Presentations</h1>
+    <ul id="index">
+        <li class="convertible">
+            {{#slides}}
+            <a class="link file" href="{{.}}">{{.}}</a>
+            <a class="link pdf" href="{{.}}.pdf">PDF</a>
+            <a class="link pptx" href="{{.}}.pptx">PPTX</a>
+            {{/slides}}
+        </li>
+    </ul>
+</body>
+
+</html>
