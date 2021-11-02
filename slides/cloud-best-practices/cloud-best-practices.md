@@ -216,7 +216,42 @@ choco install -y skaffold
 ```
 
 ---
-<!-- _header: Getting Started -->
+<!-- header: Getting Started -->
+
+#### Install Bazel
+
+Technically we're installing [Bazelisk](https://github.com/bazelbuild/bazelisk) which will pick the right version of Bazel to run.
+
+*Linux*
+
+``` bash
+curl -Lo bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.10.1/bazelisk-linux-amd64 && \
+sudo install bazel /usr/local/bin/
+```
+
+*Mac OS*
+
+``` bash
+brew install bazelisk
+
+# Alternatively
+curl -Lo bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.10.1/bazelisk-darwin-amd64 && \
+sudo install bazel /usr/local/bin/
+```
+
+*Windows*
+
+``` bash
+choco install bazelisk
+```
+<style scoped>
+p:first-of-type, p:last-of-type {
+  font-size: .75rem;
+}
+</style>
+**Note:** Consider creating a symlink to bazelisk.exe as bazel.exe if not already done for you.
+
+---
 
 #### Install kubectl
 
@@ -244,7 +279,6 @@ choco install -y kubernetes-cli
 ```
 
 ---
-<!-- _header: Getting Started -->
 
 #### Docker
 
@@ -266,7 +300,6 @@ choco install -y kubernetes-cli
 `Preferences > Kubernetes > Enable Kubernetes`
 
 ---
-<!-- _header: Getting Started -->
 
 #### Other Kubernetes Distros
 
@@ -279,6 +312,7 @@ choco install -y kubernetes-cli
 
 ---
 <!--
+header: ''
 _backgroundImage: url(https://i.redd.it/2wpc8s6buhi61.jpg)
 _color: maroon
 -->
@@ -289,6 +323,174 @@ section {
 </style>
 
 # Let's T-Rex this goat!
+
+---
+
+## The Example Repository
+
+The following command will clone a repository containing a webapp with a microservice architecture built and deployed with Bazel and Skaffold.
+The backend API is written in [Go](https://golang.org) and the frontend is written using [NextJS](https://nextjs.org/).
+
+``` bash
+git clone git@github.com:ddlees/microservices.git
+```
+
+---
+
+<style scoped>
+p:last-of-type {
+  font-size: .75rem;
+}
+</style>
+
+### The Magic!
+
+If everything is installed correctly, the following command will build and deploy the api and ui container images continuously. Make a change to `api/api.go` or `ui/pages/index.tsx` and watch how Bazel and Skaffold work together to propogate your change out to your cluster.
+
+``` bash
+skaffold dev
+```
+
+**Note:** Changes to `ui/pages/index.tsx` will appear automatically. To see the ui consume any changes made to `api/api.go` be sure to refresh your browser.
+
+---
+
+### How does it all work?
+
+---
+<!-- header: Working Backwards -->
+<style>
+p {
+  font-size: .75rem;
+}
+svg {
+  font-size: .5rem;
+}
+</style>
+
+#### The `skaffold.yaml` file
+
+Here we tell skaffold how each artifact in the project is built. The `api` image is built using Skffold's integrated Bazel support so we only need to give it the Bazel target. The `ui` image is a little special; here we're relying on Bazel to pack our existing tooling into the container and letting skaffold sync the files. This allows teams to gradually migrate building their artifacts with Bazel if they wish to do so or not.
+
+``` yaml
+artifacts:
+  - image: api
+    bazel:
+      target: //api:image.tar
+      args:
+        - '--platforms'
+        - '@io_bazel_rules_go//go/toolchain:linux_amd64'
+  - image: ui
+    custom:
+      buildCommand: 'bazel run ui:latest --platforms @build_bazel_rules_nodejs//toolchains/node:linux_amd64'
+      dependencies:
+        paths:
+          - ui/**/*
+```
+
+---
+
+#### The `skaffold.yaml` file
+
+Skaffold supports syncing changed files to a deployed container to avoid the need to rebuild, redeploy, and restart the corresponding pod. Since we want to use our existing tooling to rebuild the ui, here we're telling skaffold which files it should sync to leverage the hot-reloading feature in our existing tooling.
+
+``` yaml
+sync:
+  manual:
+    - src: ui/pages/**/*
+      dest: /app/ui/image.binary.runfiles/microservices/ui/pages/
+      strip: ui/pages/
+    - src: ui/public/**/*
+      dest: /app/ui/image.binary.runfiles/microservices/ui/public/
+      strip: ui/public/
+    - src: ui/styles/**/*
+      dest: /app/ui/image.binary.runfiles/microservices/ui/styles/
+      strip: ui/styles/
+```
+
+---
+
+#### The `skaffold.yaml` file
+
+Now that Skaffold knows how to build our container images we need to tell it how to deploy our images and which ports to forward from the cluster to the local machine.
+In this case we're telling Skaffold to deploy our native Kubernetes manifests located in the `k8s` directory using `kubectl`.
+
+``` yaml
+deploy:
+  kubectl:
+    manifests:
+      - k8s/*
+portForward:
+  - resourceType: deployment
+    resourceName: api
+    port: 8080
+    localPort: 8080
+  - resourceType: deployment
+    resourceName: ui
+    port: 8080
+    localPort: 3000
+```
+
+---
+
+#### The `api/BUILD.bazel` file
+
+The `rules_go` and `rules_docker` Bazel rule sets give us declarative APIs for telling Bazel what we want to build. Here we're telling Bazel to build a go binary for our host machine and a container image to run on our cluster.
+
+``` bzl
+load("@io_bazel_rules_docker//go:image.bzl", "go_image")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary")
+
+go_binary(
+    name = "api",
+    srcs = ["api.go"],
+)
+
+go_image(
+    name = "image",
+    srcs = ["api.go"],
+    goarch = "amd64",
+    goos = "linux",
+    static = "on",
+)
+```
+
+---
+
+#### The `ui/BUILD.bazel` file
+
+The `rules_nodejs` Bazel rule set gives us API to leverage existing tooling for frontend development. In this case, we're having Bazel leverage existing tooling to build artifacts for production and development suitable for the host machine. Additionally, we're having Bazel wrap the tooling in a NodeJS container image for us to use on our cluster.
+
+``` bzl
+next(
+    name = "ui",
+    args = ["dev", "ui"],
+    data = _RUNTIME_DEPS + ["//:node_modules"],
+)
+
+next(
+    name = "dist",
+    args = ["build", "ui", "$(@D)"a],
+    data = _RUNTIME_DEPS + ["@npm//:node_modules"],
+    output_dir = True,
+)
+
+nodejs_image(
+    name = "image",
+    args = ["dev", "ui"],
+    data = _RUNTIME_DEPS + _DEPENDENCIES,
+    entry_point = "@npm//:node_modules/next/dist/bin/next",
+)
+```
+
+---
+
+#### The `WORKSPACE` file
+
+The `WORKSPACE` file is Bazel's way of declaring what rules and/or external dependencies required to build the artifacts
+in your project. In lieu of explaining each `WORKSPACE` function, the gist of what this is doing in the example
+repository is that it's pulling the required ruleset for building `NodeJS/Javascript/Typescript` projects, the ruleset
+for building `Golang` projects and the ruleset for building container images.
 
 ---
 
@@ -394,7 +596,7 @@ _nodejs_image_repos()
 
 ```
 
-
+---
 
 # Questions?
 
